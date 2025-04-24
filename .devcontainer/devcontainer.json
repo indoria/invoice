@@ -2,7 +2,7 @@
   "name": "Codespace with PostgreSQL",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolder}",
+  "workspaceFolder": "/workspaces/invoice",
   "customizations": {
     "vscode": {
       "extensions": [
