@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  db:
+    # Use the official PostgreSQL image
+    image: postgres:latest
+    environment:
+      # Set your desired database credentials and name
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydatabase
+    ports:
+      # Map the host port 5432 to the container port 5432
+      # This allows you to connect from your local machine if needed,
+      # and is also used internally by Codespaces port forwarding.
+      - "5432:5432"
+    volumes:
+      # Persist data to a named volume so it survives container restarts
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    # Optional: Add a healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      # Build context is the parent directory where your code likely resides
+      context: ..
+      # Path to your Dockerfile for the application
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      # Mount your workspace directory
+      - ..:/workspace:cached
+    # Use a command that keeps the container running, like sleep infinity
+    # or replace with your application's entrypoint/command
+    command: sleep infinity
+    # Explicitly depend on the 'db' service to ensure it starts first
+    depends_on:
+      db:
+        condition: service_healthy # Wait for the database to be healthy
+
+# Define the named volume for persistent storage
+volumes:
+  postgres_data:
