@@ -4,7 +4,7 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     volumes:
-      - ..:/workspaces/${localWorkspaceFolder}:cached
+      - ..:/workspaces/invoice:cached
     depends_on:
       - db
     command: sleep infinity
