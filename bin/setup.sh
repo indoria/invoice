@@ -43,7 +43,7 @@ check_and_setup_postgres_user_db() {
     done
     echo "PostgreSQL service is ready."
 
-    if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\du' | grep -q " ${TARGET_USER} "; then
+    if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -tAc "SELECT 1 FROM pg_user WHERE usename = '${TARGET_USER}'" | grep -q 1; then
         echo "PostgreSQL user '${TARGET_USER}' not found. Creating user..."
         psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c "CREATE USER ${TARGET_USER} WITH ENCRYPTED PASSWORD '${TARGET_PASSWORD}';"
         echo "PostgreSQL user '${TARGET_USER}' created."
@@ -51,7 +51,7 @@ check_and_setup_postgres_user_db() {
         echo "PostgreSQL user '${TARGET_USER}' already exists."
     fi
 
-    if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\l' | grep -q " ${TARGET_DB} "; then
+    if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -tAc "SELECT 1 FROM pg_database WHERE datname = '${TARGET_DB}'" | grep -q 1; then
         echo "PostgreSQL database '${TARGET_DB}' not found. Creating database..."
         psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c "CREATE DATABASE ${TARGET_DB};"
         echo "PostgreSQL database '${TARGET_DB}' created."
@@ -60,10 +60,14 @@ check_and_setup_postgres_user_db() {
     fi
 
     echo "Granting privileges to user '${TARGET_USER}' on database '${TARGET_DB}'..."
-    if psql -h "${PG_HOST}" -U "${PG_USER}" -d "${TARGET_DB}" -c "GRANT ALL PRIVILEGES ON DATABASE ${TARGET_DB} TO ${TARGET_USER};"; then
-        echo "Privileges granted."
+    if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${TARGET_DB}" -tAc "SELECT 1 FROM pg_catalog.pg_grant WHERE objid = (SELECT oid FROM pg_database WHERE datname = '${TARGET_DB}') AND grantee = (SELECT oid FROM pg_user WHERE usename = '${TARGET_USER}')" | grep -q 1; then
+         if psql -h "${PG_HOST}" -U "${PG_USER}" -d "${TARGET_DB}" -c "GRANT ALL PRIVILEGES ON DATABASE ${TARGET_DB} TO ${TARGET_USER};"; then
+            echo "Privileges granted."
+         else
+            echo "Failed to grant privileges. Ensure database '${TARGET_DB}' exists and user '${PG_USER}' has necessary permissions."
+         fi
     else
-         echo "Failed to grant privileges. Ensure database '${TARGET_DB}' exists and user '${PG_USER}' has necessary permissions."
+        echo "Privileges already granted."
     fi
 
     unset PGPASSWORD
@@ -77,19 +81,33 @@ check_node() {
         exit 1
     else
         echo "Node.js is available."
-    fi
+    }
 }
 
 check_and_setup_express() {
     echo "Checking Express setup in ${SERVER_DIR} directory..."
     pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
 
-    if [ ! -f "app.js" ] || [ ! -d "routes" ]; then
-        echo "Express is not set up. Setting up Express using express-generator..."
-        npx express-generator --view=ejs .
-        echo "Express setup complete."
+    if [ ! -f "package.json" ]; then
+        echo "Express package.json not found. Setting up Express using express-generator..."
+        npx express-generator --view=ejs . --no-install
+        echo "Express setup complete (files generated)."
     else
-        echo "Express is already set up."
+        echo "Express package.json already exists. Skipping express-generator."
+    fi
+
+    popd > /dev/null
+}
+
+install_base_packages() {
+    echo "Installing base npm packages in ${SERVER_DIR}..."
+    pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
+
+    if [ -f "package.json" ]; then
+        npm install
+        echo "Base npm packages installed."
+    else
+        echo "package.json not found in ${SERVER_DIR}. Skipping base package installation."
     fi
 
     popd > /dev/null
@@ -104,21 +122,21 @@ install_prod_packages() {
         echo "Production packages installed."
     else
         echo "package.json not found in ${SERVER_DIR}. Skipping production package installation."
-    fi
+    }
 
     popd > /dev/null
 }
 
 install_dev_packages() {
     echo "Installing development packages in ${SERVER_DIR}..."
-    pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
+     pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
 
     if [ -f "package.json" ]; then
         npm install --save-dev jest supertest eslint prettier nodemon swagger-ui-express swagger-jsdoc
         echo "Development packages installed."
     else
         echo "package.json not found in ${SERVER_DIR}. Skipping development package installation."
-    fi
+    }
 
     popd > /dev/null
 }
@@ -127,6 +145,7 @@ check_psql_client
 check_and_setup_postgres_user_db
 check_node
 check_and_setup_express
+install_base_packages
 install_prod_packages
 install_dev_packages
 
