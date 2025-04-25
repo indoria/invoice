@@ -153,7 +153,8 @@ install_dev_packages
 echo "Moving files from ${BIN_DATA_DIR} to ${SERVER_DIR}..."
 cp -f "${BIN_DATA_DIR}/gitignore.txt" "${SERVER_DIR}/.gitignore" || { echo "Warning: Could not move ${BIN_DATA_DIR}/gitignore.txt. File might not exist."; }
 cp -f "${BIN_DATA_DIR}/app.js" "${SERVER_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/app.js. File might not exist."; }
-cp -f "${BIN_DATA_DIR}/app.js" "${CLIENT_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/index.html. File might not exist."; }
+cp -f "${BIN_DATA_DIR}/index.html" "${CLIENT_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/index.html. File might not exist."; }
+cp -f "${BIN_DATA_DIR}/www.txt" "${SERVER_DIR}/bin/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/index.html. File might not exist."; }
 echo "Files moved."
 
 echo "postCreateCommand setup script finished."
