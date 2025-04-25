@@ -90,7 +90,7 @@ check_and_setup_express() {
 
     if [ ! -f "package.json" ]; then
         echo "Express package.json not found. Setting up Express using express-generator..."
-        npx express-generator --view=ejs ../server
+        npx express-generator --view=ejs ../server --no-install
         echo "Express setup complete (files generated)."
     else
         echo "Express package.json already exists. Skipping express-generator."
@@ -145,7 +145,7 @@ check_psql_client
 check_and_setup_postgres_user_db
 check_node
 check_and_setup_express
-#install_base_packages
+install_base_packages
 install_prod_packages
 install_dev_packages
 
