@@ -18,6 +18,5 @@
         5432,
         3000
     ],
-    "postCreateCommand": "bash ./bin/setup.sh",
     "remoteUser": "codespace"
 }
