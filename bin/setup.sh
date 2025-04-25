@@ -145,7 +145,7 @@ check_psql_client
 check_and_setup_postgres_user_db
 check_node
 check_and_setup_express
-install_base_packages
+#install_base_packages
 install_prod_packages
 install_dev_packages
 
