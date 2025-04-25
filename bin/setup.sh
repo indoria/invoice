@@ -114,12 +114,6 @@ install_base_packages() {
     popd > /dev/null
 }
 
-echo "Moving files from ${BIN_DATA_DIR} to ${SERVER_DIR}..."
-mv -f "${BIN_DATA_DIR}/gitignore.txt" "${SERVER_DIR}/.gitignore" || { echo "Warning: Could not move ${BIN_DATA_DIR}/gitignore.txt. File might not exist."; }
-mv -f "${BIN_DATA_DIR}/app.js" "${SERVER_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/app.js. File might not exist."; }
-mv -f "${BIN_DATA_DIR}/app.js" "${CLIENT_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/index.html. File might not exist."; }
-echo "Files moved."
-
 install_prod_packages() {
     echo "Installing production packages in ${SERVER_DIR}..."
      pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
@@ -147,6 +141,12 @@ install_dev_packages() {
 
     popd > /dev/null
 }
+
+echo "Moving files from ${BIN_DATA_DIR} to ${SERVER_DIR}..."
+mv -f "${BIN_DATA_DIR}/gitignore.txt" "${SERVER_DIR}/.gitignore" || { echo "Warning: Could not move ${BIN_DATA_DIR}/gitignore.txt. File might not exist."; }
+mv -f "${BIN_DATA_DIR}/app.js" "${SERVER_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/app.js. File might not exist."; }
+mv -f "${BIN_DATA_DIR}/app.js" "${CLIENT_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/index.html. File might not exist."; }
+echo "Files moved."
 
 check_psql_client
 check_and_setup_postgres_user_db
