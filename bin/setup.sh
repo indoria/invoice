@@ -81,7 +81,7 @@ check_node() {
         exit 1
     else
         echo "Node.js is available."
-    }
+    fi
 }
 
 check_and_setup_express() {
@@ -90,7 +90,7 @@ check_and_setup_express() {
 
     if [ ! -f "package.json" ]; then
         echo "Express package.json not found. Setting up Express using express-generator..."
-        npx express-generator --view=ejs . --no-install
+        npx express-generator --view=ejs ../server
         echo "Express setup complete (files generated)."
     else
         echo "Express package.json already exists. Skipping express-generator."
@@ -122,7 +122,7 @@ install_prod_packages() {
         echo "Production packages installed."
     else
         echo "package.json not found in ${SERVER_DIR}. Skipping production package installation."
-    }
+    fi
 
     popd > /dev/null
 }
@@ -136,7 +136,7 @@ install_dev_packages() {
         echo "Development packages installed."
     else
         echo "package.json not found in ${SERVER_DIR}. Skipping development package installation."
-    }
+    fi
 
     popd > /dev/null
 }
