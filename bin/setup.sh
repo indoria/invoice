@@ -15,6 +15,7 @@ TARGET_DB="invoice"
 SERVER_DIR="server"
 CLIENT_DIR="client"
 COMMON_DIR="common"
+BIN_DATA_DIR="bin/data"
 
 echo "Creating project directories: ${SERVER_DIR}, ${CLIENT_DIR}, ${COMMON_DIR}..."
 mkdir -p "${SERVER_DIR}" "${CLIENT_DIR}" "${COMMON_DIR}"
@@ -112,6 +113,11 @@ install_base_packages() {
 
     popd > /dev/null
 }
+
+echo "Moving files from ${BIN_DATA_DIR} to ${SERVER_DIR}..."
+mv -f "${BIN_DATA_DIR}/gitignore.txt" "${SERVER_DIR}/.gitignore" || { echo "Warning: Could not move ${BIN_DATA_DIR}/gitignore.txt. File might not exist."; }
+mv -f "${BIN_DATA_DIR}/app.js" "${SERVER_DIR}/" || { echo "Warning: Could not move ${BIN_DATA_DIR}/app.js. File might not exist."; }
+echo "Files moved."
 
 install_prod_packages() {
     echo "Installing production packages in ${SERVER_DIR}..."
