@@ -2,6 +2,7 @@
 
 ## Procedure
 ```
+# Ensure that ports 3000 and 5432 are open, and not listed in PORTS tab of VS code console.
 docker compose up -d
 bash bin/setup.sh
 ```
