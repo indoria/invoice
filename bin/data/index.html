@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Invoice PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Invoice Generator</h1>
+        <p>Click the button below to generate a sample invoice PDF.</p>
+        <button onclick="generateInvoice()">Generate and Download Invoice</button>
+    </div>
+
+    <script>
+        // Ensure jsPDF is available globally or via window.jsPDF
+        const { jsPDF } = window.jspdf;
+
+        function generateInvoice() {
+            // Create a new jsPDF instance
+            const doc = new jsPDF();
+
+            // Set font and size
+            doc.setFontSize(12);
+
+            // --- Invoice Header ---
+            doc.text("Invoice", 14, 22);
+            doc.setFontSize(10);
+            doc.text("Invoice # INV-001", 14, 30);
+            doc.text("Date: 2025-04-23", 14, 35);
+
+            // --- Company Info ---
+            doc.setFontSize(10);
+            doc.text("Your Company Name", 150, 22);
+            doc.text("Your Address Line 1", 150, 27);
+            doc.text("Your Address Line 2", 150, 32);
+            doc.text("City, Postal Code", 150, 37);
+            doc.text("Email: info@yourcompany.com", 150, 42);
+
+            // --- Bill To ---
+            doc.setFontSize(10);
+            doc.text("Bill To:", 14, 55);
+            doc.text("Customer Name", 14, 60);
+            doc.text("Customer Address Line 1", 14, 65);
+            doc.text("Customer Address Line 2", 14, 70);
+            doc.text("Customer City, Postal Code", 14, 75);
+
+            // --- Invoice Items Table (Simple Example) ---
+            const startY = 90;
+            const col1X = 14;
+            const col2X = 80;
+            const col3X = 140;
+            const col4X = 170;
+
+            // Table Headers
+            doc.setFontSize(10);
+            doc.text("Description", col1X, startY);
+            doc.text("Quantity", col2X, startY);
+            doc.text("Unit Price", col3X, startY);
+            doc.text("Total", col4X, startY);
+
+            // Draw a line under headers
+            doc.line(14, startY + 2, 196, startY + 2);
+
+            // Table Rows (Sample Data)
+            const items = [
+                { description: "Product A", quantity: 2, unitPrice: 50 },
+                { description: "Service B", quantity: 1, unitPrice: 150 },
+                { description: "Product C", quantity: 5, unitPrice: 10 },
+            ];
+
+            let currentY = startY + 10;
+            let subtotal = 0;
+
+            items.forEach(item => {
+                const itemTotal = item.quantity * item.unitPrice;
+                doc.text(item.description, col1X, currentY);
+                doc.text(item.quantity.toString(), col2X, currentY);
+                doc.text(item.unitPrice.toFixed(2), col3X, currentY);
+                doc.text(itemTotal.toFixed(2), col4X, currentY);
+                subtotal += itemTotal;
+                currentY += 7; // Move down for the next row
+            });
+
+            // Draw a line before totals
+            doc.line(140, currentY + 2, 196, currentY + 2);
+            currentY += 10;
+
+            // --- Totals ---
+            doc.text("Subtotal:", col3X, currentY);
+            doc.text(subtotal.toFixed(2), col4X, currentY);
+            currentY += 7;
+
+            const taxRate = 0.10; // 10% tax
+            const taxAmount = subtotal * taxRate;
+            doc.text("Tax (10%):", col3X, currentY);
+            doc.text(taxAmount.toFixed(2), col4X, currentY);
+            currentY += 7;
+
+            const total = subtotal + taxAmount;
+            doc.setFontSize(12);
+            doc.text("Total:", col3X, currentY);
+            doc.text(total.toFixed(2), col4X, currentY);
+
+            // --- Add an Image (Placeholder) ---
+            // To add an image, you need to provide its data (e.g., base64 string)
+            // Example: doc.addImage(imageData, 'PNG', 14, currentY + 20, 50, 50);
+            // For this example, we'll just add a text placeholder.
+            doc.setFontSize(10);
+            doc.text("Placeholder for Company Logo/Image", 14, currentY + 20);
+
+
+            // --- Footer ---
+            doc.setFontSize(8);
+            doc.text("Thank you for your business!", 14, doc.internal.pageSize.height - 10);
+
+
+            // Save the PDF
+            doc.save("invoice.pdf");
+        }
+    </script>
+</body>
+</html>
