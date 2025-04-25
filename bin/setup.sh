@@ -1,12 +1,8 @@
-#! /bin/bash
-
-## npm install express helmet cors express-rate-limit hpp csurf winston morgan pg sequelize passport jsonwebtoken bcryptjs dotenv pm2
-## npm install --save-dev jest supertest eslint prettier nodemon swagger-ui-express swagger-jsdoc
-## /bin/setup.sh, client, common, server
-
-sudo apt update
-
 #!/bin/bash
+
+set -e
+
+echo "Running postCreateCommand setup script..."
 
 PG_HOST="db"
 PG_USER="codespace"
@@ -16,8 +12,16 @@ TARGET_USER="toor"
 TARGET_PASSWORD="toorpwd"
 TARGET_DB="invoice"
 
-# To be run from 'app' container
+SERVER_DIR="server"
+CLIENT_DIR="client"
+COMMON_DIR="common"
+
+echo "Creating project directories: ${SERVER_DIR}, ${CLIENT_DIR}, ${COMMON_DIR}..."
+mkdir -p "${SERVER_DIR}" "${CLIENT_DIR}" "${COMMON_DIR}"
+echo "Directories created or already exist."
+
 check_psql_client() {
+    echo "Checking for PostgreSQL client (psql)..."
     if ! command -v psql &> /dev/null; then
         echo "PostgreSQL client (psql) is not found."
         echo "Please ensure 'postgresql-client' is installed in your app service's Dockerfile."
@@ -27,81 +31,103 @@ check_psql_client() {
     fi
 }
 
-# To be run from 'app' container
 check_and_setup_postgres_user_db() {
     echo "Checking for PostgreSQL user '${TARGET_USER}' and database '${TARGET_DB}'..."
 
     export PGPASSWORD="${PG_PASSWORD}"
 
-    if psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\l' &> /dev/null; then
-        echo "Successfully connected to PostgreSQL as user '${PG_USER}' on ${PG_HOST}."
+    echo "Waiting for PostgreSQL service ('db') to be ready..."
+    until psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\q' 2>/dev/null; do
+        echo "PostgreSQL is unavailable - sleeping"
+        sleep 2
+    done
+    echo "PostgreSQL service is ready."
 
-        if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\du' | grep -q " ${TARGET_USER} "; then
-            echo "PostgreSQL user '${TARGET_USER}' not found. Creating user..."
-            psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c "CREATE USER ${TARGET_USER} WITH ENCRYPTED PASSWORD '${TARGET_PASSWORD}';"
-            echo "PostgreSQL user '${TARGET_USER}' created."
-        else
-            echo "PostgreSQL user '${TARGET_USER}' already exists."
-        fi
-
-        if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\l' | grep -q " ${TARGET_DB} "; then
-            echo "PostgreSQL database '${TARGET_DB}' not found. Creating database..."
-            psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c "CREATE DATABASE ${TARGET_DB};"
-            echo "PostgreSQL database '${TARGET_DB}' created."
-        else
-            echo "PostgreSQL database '${TARGET_DB}' already exists."
-        fi
-
-        echo "Granting privileges to user '${TARGET_USER}' on database '${TARGET_DB}'..."
-        if psql -h "${PG_HOST}" -U "${PG_USER}" -d "${TARGET_DB}" -c "GRANT ALL PRIVILEGES ON DATABASE ${TARGET_DB} TO ${TARGET_USER};"; then
-            echo "Privileges granted."
-        else
-             echo "Failed to grant privileges. Ensure database '${TARGET_DB}' exists and user '${PG_USER}' has necessary permissions."
-        fi
-
-
+    if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\du' | grep -q " ${TARGET_USER} "; then
+        echo "PostgreSQL user '${TARGET_USER}' not found. Creating user..."
+        psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c "CREATE USER ${TARGET_USER} WITH ENCRYPTED PASSWORD '${TARGET_PASSWORD}';"
+        echo "PostgreSQL user '${TARGET_USER}' created."
     else
-        echo "Could not connect to PostgreSQL as user '${PG_USER}' on ${PG_HOST}."
-        echo "Please ensure the 'db' service is running and accessible from the 'app' service."
-        exit 1
+        echo "PostgreSQL user '${TARGET_USER}' already exists."
+    fi
+
+    if ! psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c '\l' | grep -q " ${TARGET_DB} "; then
+        echo "PostgreSQL database '${TARGET_DB}' not found. Creating database..."
+        psql -h "${PG_HOST}" -U "${PG_USER}" -d "${PG_DB_DEFAULT}" -c "CREATE DATABASE ${TARGET_DB};"
+        echo "PostgreSQL database '${TARGET_DB}' created."
+    else
+        echo "PostgreSQL database '${TARGET_DB}' already exists."
+    fi
+
+    echo "Granting privileges to user '${TARGET_USER}' on database '${TARGET_DB}'..."
+    if psql -h "${PG_HOST}" -U "${PG_USER}" -d "${TARGET_DB}" -c "GRANT ALL PRIVILEGES ON DATABASE ${TARGET_DB} TO ${TARGET_USER};"; then
+        echo "Privileges granted."
+    else
+         echo "Failed to grant privileges. Ensure database '${TARGET_DB}' exists and user '${PG_USER}' has necessary permissions."
     fi
 
     unset PGPASSWORD
 }
 
 check_node() {
+    echo "Checking for Node.js..."
     if ! command -v node &> /dev/null; then
-        echo "Node.js is not installed. Installing Node.js LTS..."
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-        apt-get install -y nodejs
+        echo "Node.js is not found."
+        echo "Please ensure 'nodejs' is installed in your app service's Dockerfile."
+        exit 1
     else
-        echo "Node.js is already installed."
+        echo "Node.js is available."
     fi
 }
 
-cd "$(dirname "$0")/../server" || { echo "Directory ../server does not exist. Exiting."; exit 1; }
+check_and_setup_express() {
+    echo "Checking Express setup in ${SERVER_DIR} directory..."
+    pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
 
-check_express() {
     if [ ! -f "app.js" ] || [ ! -d "routes" ]; then
-        echo "Express is not set up in the server directory. Setting up Express..."
-        npx express-generator --view=ejs
+        echo "Express is not set up. Setting up Express using express-generator..."
+        npx express-generator --view=ejs .
+        echo "Express setup complete."
     else
-        echo "Express is already set up in the server directory."
+        echo "Express is already set up."
     fi
-}
 
+    popd > /dev/null
+}
 
 install_prod_packages() {
-    echo "Installing production packages..."
-    npm install helmet cors express-rate-limit hpp csurf winston morgan pg sequelize passport jsonwebtoken accesscontrol compression bcryptjs dotenv pm2
+    echo "Installing production packages in ${SERVER_DIR}..."
+     pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
+
+    if [ -f "package.json" ]; then
+        npm install helmet cors express-rate-limit hpp csurf winston morgan pg sequelize passport jsonwebtoken accesscontrol compression bcryptjs dotenv pm2
+        echo "Production packages installed."
+    else
+        echo "package.json not found in ${SERVER_DIR}. Skipping production package installation."
+    fi
+
+    popd > /dev/null
 }
 
 install_dev_packages() {
-    echo "Installing development packages..."
-    npm install --save-dev jest supertest eslint prettier nodemon swagger-ui-express swagger-jsdoc
+    echo "Installing development packages in ${SERVER_DIR}..."
+    pushd "${SERVER_DIR}" > /dev/null || { echo "Error navigating to ${SERVER_DIR}. Exiting."; exit 1; }
+
+    if [ -f "package.json" ]; then
+        npm install --save-dev jest supertest eslint prettier nodemon swagger-ui-express swagger-jsdoc
+        echo "Development packages installed."
+    else
+        echo "package.json not found in ${SERVER_DIR}. Skipping development package installation."
+    fi
+
+    popd > /dev/null
 }
 
+check_psql_client
+check_and_setup_postgres_user_db
 check_node
-check_express
+check_and_setup_express
 install_prod_packages
 install_dev_packages
+
+echo "postCreateCommand setup script finished."
