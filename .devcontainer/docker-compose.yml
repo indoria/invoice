@@ -4,7 +4,10 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     volumes:
-      - ..:/workspaces/invoice:cached
+      - type: bind
+        source: ..
+        target: /workspaces/invoice
+        consistency: cached
     depends_on:
       - db
     command: sleep infinity
@@ -21,3 +24,4 @@ services:
 
 volumes:
   postgres_data:
+  
