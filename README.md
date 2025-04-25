@@ -1,5 +1,13 @@
 # invoice
 
+## Procedure
+```
+docker compose up -d
+bash bin/setup.sh
+```
+
+
+## Help and Description
 ```
 # If in compose commands "no configuration file provided" error occurs, then docker compose -f .devcontainer/docker-compose.yml
 
